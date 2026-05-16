@@ -1,0 +1,184 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Panelim - OfficeGuardian{% endblock %}
+
+{% block content %}
+<h4 class="mb-4"><i class="bi bi-person"></i> Panelim</h4>
+
+<!-- Connection Status -->
+<div class="card bg-card mb-4">
+    <div class="card-body py-3">
+        <div class="d-flex align-items-center gap-3">
+            {% if active_session %}
+            <span class="status-dot online"></span>
+            <div>
+                <span style="font-weight: 500;">{{ active_session.room.name }}</span>
+                <span style="color: var(--text-secondary); font-size: 0.82rem;"> odasina baglisiniz</span>
+                <span class="badge bg-accent ms-1">{{ active_session.room.code }}</span>
+            </div>
+            {% else %}
+            <span class="status-dot offline"></span>
+            <span style="color: var(--text-secondary); font-size: 0.85rem;">
+                Şu an aktif oturumunuz yok. İstemci uygulamasını çalıştırın.
+            </span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Unread Warnings -->
+{% if unread_warnings %}
+<div class="card bg-card mb-4" style="border-color: rgba(251, 191, 36, 0.2) !important;">
+    <div class="card-body">
+        <h5 class="card-title" style="color: var(--accent-amber);"><i class="bi bi-exclamation-triangle"></i> Yeni
+            Uyarilar</h5>
+        {% for w in unread_warnings %}
+        <div class="alert alert-warning d-flex justify-content-between align-items-center mb-2"
+            style="font-size: 0.85rem;">
+            <div>
+                <strong>{{ w.from_user.username }}:</strong> {{ w.message }}
+                <small style="color: var(--text-secondary);" class="ms-2">{{ w.created_at|date:"H:i" }}</small>
+            </div>
+            <button class="btn btn-sm btn-outline-warning" onclick="markRead({{ w.id }}, this)">
+                <i class="bi bi-check-lg"></i>
+            </button>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Daily Stats -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-label">Calisma Suresi</div>
+            <div class="stat-value" style="color: var(--accent-green);" id="stat-work">
+                {% if today_stats %}{{ today_stats.work_seconds|floatformat:0 }}{% else %}0{% endif %} sn
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-label">Mola Suresi</div>
+            <div class="stat-value" style="color: var(--accent-amber);" id="stat-break">
+                {% if today_stats %}{{ today_stats.break_seconds|floatformat:0 }}{% else %}0{% endif %} sn
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-label">Postur Skoru</div>
+            <div class="stat-value" style="color: var(--accent-blue);" id="stat-posture">
+                {% if today_stats %}{{ today_stats.posture_score }}{% else %}0{% endif %}%
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-label">Verimlilik</div>
+            <div class="stat-value" style="color: var(--accent-purple);" id="stat-efficiency">
+                {% if today_stats %}{{ today_stats.work_ratio }}{% else %}0{% endif %}%
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Weekly Stats -->
+<div class="card bg-card mb-4">
+    <div class="card-body">
+        <h5 class="card-title"><i class="bi bi-calendar-week"></i> Son 7 Gun</h5>
+        {% if weekly_stats %}
+        <div class="table-responsive">
+            <table class="table table-dark table-hover table-sm mb-0">
+                <thead>
+                    <tr>
+                        <th>Tarih</th>
+                        <th>Calisma (dk)</th>
+                        <th>Mola (dk)</th>
+                        <th>Postur Skoru</th>
+                        <th>Verimlilik</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in weekly_stats %}
+                    <tr>
+                        <td>{{ s.date|date:"d.m.Y" }}</td>
+                        <td>{{ s.work_seconds|floatformat:0 }}</td>
+                        <td>{{ s.break_seconds|floatformat:0 }}</td>
+                        <td>
+                            <div class="progress" style="height: 20px;">
+                                <div class="progress-bar {% if s.posture_score >= 70 %}bg-success{% elif s.posture_score >= 40 %}bg-warning{% else %}bg-danger{% endif %}"
+                                    style="width: {{ s.posture_score }}%">{{ s.posture_score }}%</div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="progress" style="height: 20px;">
+                                <div class="progress-bar bg-info" style="width: {{ s.work_ratio }}%">{{ s.work_ratio }}%
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p style="color: var(--text-secondary); font-size: 0.85rem;" class="mb-0">Henuz istatistik verisi yok.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- All Warnings -->
+<div class="card bg-card">
+    <div class="card-body">
+        <h5 class="card-title"><i class="bi bi-bell"></i> Tum Uyarilar</h5>
+        {% if recent_warnings %}
+        <div class="table-responsive">
+            <table class="table table-dark table-hover table-sm mb-0">
+                <thead>
+                    <tr>
+                        <th>Tarih</th>
+                        <th>Gonderen</th>
+                        <th>Mesaj</th>
+                        <th>Durum</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for w in recent_warnings %}
+                    <tr>
+                        <td>{{ w.created_at|date:"d.m.Y H:i" }}</td>
+                        <td>{{ w.from_user.username }}</td>
+                        <td>{{ w.message }}</td>
+                        <td>
+                            {% if w.is_read %}
+                            <span class="badge bg-secondary">Okundu</span>
+                            {% else %}
+                            <span class="badge bg-warning">Yeni</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p style="color: var(--text-secondary); font-size: 0.85rem;" class="mb-0">Henuz uyari yok.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/employee.js' %}"></script>
+<script>
+    function markRead(warningId, btn) {
+        fetch(`/warning/${warningId}/read/`, { method: 'GET' })
+            .then(r => r.json())
+            .then(() => {
+                btn.closest('.alert').remove();
+            });
+    }
+</script>
+{% endblock %}

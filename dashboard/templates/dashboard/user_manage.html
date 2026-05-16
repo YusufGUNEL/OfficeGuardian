@@ -1,0 +1,174 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Kullanici Yonetimi - OfficeGuardian{% endblock %}
+
+{% block content %}
+<h4 class="mb-4"><i class="bi bi-people-fill"></i> Kullanici Yonetimi</h4>
+
+<!-- Kullanici Tablosu -->
+<div class="card bg-card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-dark table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Kullanici</th>
+                        <th>E-posta</th>
+                        <th>Rol</th>
+                        <th>Atanan Odalar</th>
+                        <th>Kayit</th>
+                        <th>Islem</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--accent-blue-soft); display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; color: var(--accent-blue);">
+                                    {{ user.get_initials }}
+                                </div>
+                                <div>
+                                    <div style="font-weight: 600;">{{ user.username }}</div>
+                                    {% if user.first_name %}<div style="font-size: 0.75rem; color: var(--text-secondary);">{{ user.first_name }} {{ user.last_name }}</div>{% endif %}
+                                </div>
+                            </div>
+                        </td>
+                        <td style="color: var(--text-secondary);">{{ user.email|default:"-" }}</td>
+                        <td>
+                            {% if user.id != request.user.id %}
+                            <form method="post" class="d-inline" style="margin: 0;">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="change_role">
+                                <input type="hidden" name="user_id" value="{{ user.id }}">
+                                <select name="new_role" class="form-select form-select-sm bg-dark text-light border-secondary"
+                                    style="width: auto; font-size: 0.78rem; display: inline-block;"
+                                    onchange="this.form.submit()">
+                                    {% for val, label in role_choices %}
+                                    <option value="{{ val }}" {% if user.role == val %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </form>
+                            {% else %}
+                            <span class="badge bg-info">{{ user.get_role_display }} (Sen)</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if user.role == 'takim_lideri' %}
+                            <div class="d-flex flex-wrap gap-1 align-items-center">
+                                {% for room in user.assigned_rooms.all %}
+                                <span class="badge bg-secondary" style="font-size: 0.72rem;">
+                                    {{ room.name }}
+                                    <form method="post" class="d-inline" style="margin: 0;">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="remove_room">
+                                        <input type="hidden" name="user_id" value="{{ user.id }}">
+                                        <input type="hidden" name="room_id" value="{{ room.id }}">
+                                        <button type="submit" class="btn-close btn-close-white" style="font-size: 0.5rem; margin-left: 4px; vertical-align: middle;"></button>
+                                    </form>
+                                </span>
+                                {% endfor %}
+                                <!-- Oda ekle -->
+                                <form method="post" class="d-inline" style="margin: 0;">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="assign_room">
+                                    <input type="hidden" name="user_id" value="{{ user.id }}">
+                                    <select name="room_id" class="form-select form-select-sm bg-dark text-light border-secondary"
+                                        style="width: auto; font-size: 0.72rem; display: inline-block; padding: 0.15rem 0.4rem;"
+                                        onchange="if(this.value) this.form.submit()">
+                                        <option value="">+ Oda Ekle</option>
+                                        {% for room in rooms %}
+                                        <option value="{{ room.id }}">{{ room.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </form>
+                            </div>
+                            {% else %}
+                            <span style="color: var(--text-muted); font-size: 0.78rem;">-</span>
+                            {% endif %}
+                        </td>
+                        <td style="color: var(--text-secondary); font-size: 0.8rem;">{{ user.date_joined|date:"d.m.Y" }}</td>
+                        <td>
+                            <a href="{% url 'accounts:profile' %}" class="btn btn-sm btn-outline-secondary" title="Profil">
+                                <i class="bi bi-person-gear"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Rol Aciklama -->
+<div class="card bg-card mt-4">
+    <div class="card-body">
+        <h5 class="card-title"><i class="bi bi-info-circle"></i> Rol Yetkileri</h5>
+        <div class="table-responsive">
+            <table class="table table-dark table-sm mb-0" style="font-size: 0.82rem;">
+                <thead>
+                    <tr>
+                        <th>Yetki</th>
+                        <th class="text-center">Super Admin</th>
+                        <th class="text-center">Yonetici</th>
+                        <th class="text-center">Takim Lideri</th>
+                        <th class="text-center">Calisan</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Canli izleme</td>
+                        <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
+                        <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
+                        <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
+                        <td class="text-center text-danger"><i class="bi bi-x-lg"></i></td>
+                    </tr>
+                    <tr>
+                        <td>Oda olusturma / silme</td>
+                        <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
+                        <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
+                        <td class="text-center text-danger"><i class="bi bi-x-lg"></i></td>
+                        <td class="text-center text-danger"><i class="bi bi-x-lg"></i></td>
+                    </tr>
+                    <tr>
+                        <td>Uyari gonderme</td>
+                        <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
+                        <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
+                        <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
+                        <td class="text-center text-danger"><i class="bi bi-x-lg"></i></td>
+                    </tr>
+                    <tr>
+                        <td>Log goruntuleme</td>
+                        <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
+                        <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
+                        <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
+                        <td class="text-center text-danger"><i class="bi bi-x-lg"></i></td>
+                    </tr>
+                    <tr>
+                        <td>CSV / Excel export</td>
+                        <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
+                        <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
+                        <td class="text-center text-danger"><i class="bi bi-x-lg"></i></td>
+                        <td class="text-center text-danger"><i class="bi bi-x-lg"></i></td>
+                    </tr>
+                    <tr>
+                        <td>Kullanici yonetimi</td>
+                        <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
+                        <td class="text-center text-danger"><i class="bi bi-x-lg"></i></td>
+                        <td class="text-center text-danger"><i class="bi bi-x-lg"></i></td>
+                        <td class="text-center text-danger"><i class="bi bi-x-lg"></i></td>
+                    </tr>
+                    <tr>
+                        <td>Tum odalara erisim</td>
+                        <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
+                        <td class="text-center text-warning">Kendi odalari</td>
+                        <td class="text-center text-warning">Atanan odalar</td>
+                        <td class="text-center text-danger"><i class="bi bi-x-lg"></i></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

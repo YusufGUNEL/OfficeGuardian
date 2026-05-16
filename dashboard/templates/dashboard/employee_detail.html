@@ -1,0 +1,185 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}{{ employee.username }} - OfficeGuardian{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4>
+        <i class="bi bi-person"></i> {{ employee.username }}
+        <span class="badge bg-accent">{{ employee.get_role_display }}</span>
+    </h4>
+    <a href="javascript:history.back()" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Geri
+    </a>
+</div>
+
+<!-- Stats Overview -->
+<div class="row g-3 mb-4">
+    {% if stats %}
+    {% with last=stats.last %}
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-label">Calisma Suresi</div>
+            <div class="stat-value" style="color: var(--accent-green);">
+                {% if last %}{{ last.work_seconds|floatformat:0 }}{% else %}0{% endif %} sn
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-label">Mola Suresi</div>
+            <div class="stat-value" style="color: var(--accent-amber);">
+                {% if last %}{{ last.break_seconds|floatformat:0 }}{% else %}0{% endif %} sn
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-label">Postur Skoru</div>
+            <div class="stat-value" style="color: var(--accent-blue);">
+                {% if last %}{{ last.posture_score }}{% else %}0{% endif %}%
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-label">Verimlilik</div>
+            <div class="stat-value" style="color: var(--accent-purple);">
+                {% if last %}{{ last.work_ratio }}{% else %}0{% endif %}%
+            </div>
+        </div>
+    </div>
+    {% endwith %}
+    {% endif %}
+</div>
+
+<!-- Weekly Chart -->
+<div class="card bg-card mb-4">
+    <div class="card-body">
+        <h5 class="card-title"><i class="bi bi-graph-up"></i> Son 7 Gun</h5>
+        <canvas id="weeklyChart" height="100"></canvas>
+    </div>
+</div>
+
+<!-- Recent Sessions -->
+<div class="card bg-card">
+    <div class="card-body">
+        <h5 class="card-title"><i class="bi bi-clock-history"></i> Son Oturumlar</h5>
+        <div class="table-responsive">
+            <table class="table table-dark table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Oda</th>
+                        <th>Baslangic</th>
+                        <th>Bitis</th>
+                        <th>Durum</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for session in recent_sessions %}
+                    <tr>
+                        <td>{{ session.room.name }}</td>
+                        <td>{{ session.started_at|date:"d.m.Y H:i" }}</td>
+                        <td>{{ session.ended_at|date:"d.m.Y H:i"|default:"-" }}</td>
+                        <td>
+                            {% if session.is_online %}
+                            <span class="badge bg-success">Cevrimici</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Kapali</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const labels = [{% for s in stats %}'{{ s.date|date:"d.m" }}'{% if not forloop.last %},{% endif %}{% endfor %}];
+    const postureData = [{% for s in stats %}{{ s.posture_score }}{% if not forloop.last %},{% endif %}{% endfor %}];
+    const workData = [{% for s in stats %}{{ s.work_ratio }}{% if not forloop.last %},{% endif %}{% endfor %}];
+
+    if (labels.length > 0) {
+        const ctx = document.getElementById('weeklyChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Postur Skoru (%)',
+                        data: postureData,
+                        borderColor: '#34d399',
+                        backgroundColor: 'rgba(52,211,153,0.08)',
+                        tension: 0.4,
+                        fill: true,
+                        borderWidth: 2,
+                        pointBackgroundColor: '#34d399',
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                    },
+                    {
+                        label: 'Verimlilik (%)',
+                        data: workData,
+                        borderColor: '#60a5fa',
+                        backgroundColor: 'rgba(96,165,250,0.08)',
+                        tension: 0.4,
+                        fill: true,
+                        borderWidth: 2,
+                        pointBackgroundColor: '#60a5fa',
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                interaction: {
+                    intersect: false,
+                    mode: 'index',
+                },
+                scales: {
+                    y: {
+                        min: 0,
+                        max: 100,
+                        grid: { color: 'rgba(255,255,255,0.04)' },
+                        ticks: { color: '#5a6478', font: { size: 11, family: 'Inter' } }
+                    },
+                    x: {
+                        grid: { color: 'rgba(255,255,255,0.04)' },
+                        ticks: { color: '#5a6478', font: { size: 11, family: 'Inter' } }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#8b95a8',
+                            font: { size: 12, family: 'Inter' },
+                            usePointStyle: true,
+                            pointStyle: 'circle',
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: '#182136',
+                        titleColor: '#e8edf5',
+                        bodyColor: '#8b95a8',
+                        borderColor: 'rgba(255,255,255,0.1)',
+                        borderWidth: 1,
+                        cornerRadius: 8,
+                        titleFont: { family: 'Inter', weight: '600' },
+                        bodyFont: { family: 'Inter' },
+                    }
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}

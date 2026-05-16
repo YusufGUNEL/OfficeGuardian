@@ -1,0 +1,333 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}OfficeGuardian{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="{% static 'css/style.css' %}" rel="stylesheet">
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body data-theme="{{ request.user.theme|default:'dark' }}">
+    <!-- Navbar -->
+    <nav class="navbar navbar-dark">
+        <div class="container-fluid d-flex align-items-center" style="height: var(--navbar-height);">
+            <a class="navbar-brand" href="/">
+                <i class="bi bi-shield-check"></i>
+                <span>OfficeGuardian</span>
+            </a>
+            <div class="d-flex align-items-center gap-3">
+                <!-- Bildirim Zili -->
+                <div class="position-relative" style="display: inline-block;">
+                    <button id="notifBell" class="btn btn-sm" onclick="toggleNotifPanel()"
+                        style="color: var(--text-secondary); border: 1px solid var(--border-medium); padding: 0.3rem 0.6rem; position: relative;"
+                        title="Bildirimler">
+                        <i class="bi bi-bell"></i>
+                        <span id="notifBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem; display: none;">
+                            0
+                        </span>
+                    </button>
+                    <!-- Bildirim Paneli -->
+                    <div id="notifPanel" style="display: none; position: absolute; right: 0; top: 100%; margin-top: 8px; width: 360px; max-height: 420px; background: var(--bg-card); border: 1px solid var(--border-medium); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); z-index: 1050; overflow: hidden;">
+                        <div style="padding: 0.75rem 1rem; border-bottom: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center;">
+                            <strong style="font-size: 0.88rem; color: var(--text-primary);">Bildirimler</strong>
+                            <button class="btn btn-sm" onclick="markAllNotifRead()" style="font-size: 0.75rem; color: var(--accent-blue); border: none; padding: 0;">
+                                Tumu okundu
+                            </button>
+                        </div>
+                        <div id="notifList" style="max-height: 350px; overflow-y: auto; padding: 0.5rem;">
+                            <p style="text-align: center; color: var(--text-muted); font-size: 0.82rem; padding: 1rem;">Bildirim yok</p>
+                        </div>
+                    </div>
+                </div>
+
+                <button id="themeToggle" class="btn btn-sm" onclick="toggleTheme()"
+                    style="color: var(--text-secondary); border: 1px solid var(--border-medium); padding: 0.3rem 0.6rem;"
+                    title="Tema Degistir">
+                    <i class="bi bi-{{ request.user.theme|default:'dark' }}-mode" id="themeIcon"
+                       style="{% if request.user.theme == 'dark' %}{% else %}{% endif %}"></i>
+                </button>
+                <span class="d-flex align-items-center gap-2" style="color: var(--text-secondary); font-size: 0.85rem;">
+                    <a href="{% url 'accounts:profile' %}" style="text-decoration: none; color: inherit;" class="d-flex align-items-center gap-2">
+                        <i class="bi bi-person-circle" style="font-size: 1.1rem; color: var(--accent-blue);"></i>
+                        {{ request.user.username }}
+                    </a>
+                    <span class="badge bg-accent">{{ request.user.get_role_display }}</span>
+                </span>
+                <a href="{% url 'accounts:logout' %}" class="btn btn-outline-danger btn-sm">
+                    <i class="bi bi-box-arrow-right"></i> <span class="d-none d-sm-inline">Cikis</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="d-flex">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            {% if request.user.is_yonetici or request.user.is_takim_lideri %}
+            <a href="{% url 'dashboard:admin_dashboard' %}"
+                class="sidebar-link {% if request.resolver_match.url_name == 'admin_dashboard' %}active{% endif %}">
+                <i class="bi bi-speedometer2"></i> <span>Canli Izleme</span>
+            </a>
+            <a href="{% url 'dashboard:room_manage' %}"
+                class="sidebar-link {% if request.resolver_match.url_name == 'room_manage' %}active{% endif %}">
+                <i class="bi bi-door-open"></i> <span>Odalar</span>
+            </a>
+            {% if request.user.can_view_logs %}
+            <a href="{% url 'dashboard:logs' %}"
+                class="sidebar-link {% if request.resolver_match.url_name == 'logs' %}active{% endif %}">
+                <i class="bi bi-journal-text"></i> <span>Loglar</span>
+            </a>
+            {% endif %}
+            <a href="{% url 'dashboard:daily_report' %}"
+                class="sidebar-link {% if request.resolver_match.url_name == 'daily_report' %}active{% endif %}">
+                <i class="bi bi-file-earmark-bar-graph"></i> <span>Gunluk Rapor</span>
+            </a>
+            {% if request.user.can_manage_users %}
+            <a href="{% url 'dashboard:user_manage' %}"
+                class="sidebar-link {% if request.resolver_match.url_name == 'user_manage' %}active{% endif %}">
+                <i class="bi bi-people-fill"></i> <span>Kullanicilar</span>
+            </a>
+            {% endif %}
+            {% else %}
+            <a href="{% url 'dashboard:employee_panel' %}"
+                class="sidebar-link {% if request.resolver_match.url_name == 'employee_panel' %}active{% endif %}">
+                <i class="bi bi-person"></i> <span>Panelim</span>
+            </a>
+            <a href="{% url 'dashboard:join_room' %}"
+                class="sidebar-link {% if request.resolver_match.url_name == 'join_room' %}active{% endif %}">
+                <i class="bi bi-box-arrow-in-right"></i> <span>Odaya Katil</span>
+            </a>
+            {% endif %}
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content flex-grow-1">
+            {% if messages %}
+            {% for msg in messages %}
+            <div class="alert alert-{{ msg.tags }} alert-dismissible fade show" role="alert" style="font-size: 0.85rem;">
+                {{ msg }}
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
+            {% endif %}
+
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+    // Sesli uyari fonksiyonu (Web Audio API)
+    function playAlertSound(type) {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+
+            if (type === 'warning') {
+                osc.frequency.value = 800;
+                gain.gain.value = 0.3;
+                osc.start();
+                osc.frequency.setValueAtTime(600, ctx.currentTime + 0.1);
+                osc.frequency.setValueAtTime(800, ctx.currentTime + 0.2);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+                osc.stop(ctx.currentTime + 0.4);
+            } else if (type === 'connect') {
+                osc.frequency.value = 500;
+                gain.gain.value = 0.15;
+                osc.start();
+                osc.frequency.setValueAtTime(700, ctx.currentTime + 0.1);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+                osc.stop(ctx.currentTime + 0.2);
+            } else if (type === 'disconnect') {
+                osc.frequency.value = 400;
+                gain.gain.value = 0.15;
+                osc.start();
+                osc.frequency.setValueAtTime(300, ctx.currentTime + 0.1);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
+                osc.stop(ctx.currentTime + 0.25);
+            } else if (type === 'break') {
+                osc.frequency.value = 600;
+                osc.type = 'triangle';
+                gain.gain.value = 0.25;
+                osc.start();
+                osc.frequency.setValueAtTime(800, ctx.currentTime + 0.15);
+                osc.frequency.setValueAtTime(600, ctx.currentTime + 0.3);
+                osc.frequency.setValueAtTime(800, ctx.currentTime + 0.45);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.6);
+                osc.stop(ctx.currentTime + 0.6);
+            }
+        } catch(e) {
+            // Ses desteklenmiyorsa sessizce gec
+        }
+    }
+
+    // --- Bildirim Sistemi ---
+    let notifPanelOpen = false;
+
+    function toggleNotifPanel() {
+        const panel = document.getElementById('notifPanel');
+        notifPanelOpen = !notifPanelOpen;
+        panel.style.display = notifPanelOpen ? 'block' : 'none';
+        if (notifPanelOpen) loadNotifications();
+    }
+
+    // Panel disina tiklaninca kapat
+    document.addEventListener('click', function(e) {
+        const panel = document.getElementById('notifPanel');
+        const bell = document.getElementById('notifBell');
+        if (panel && bell && notifPanelOpen && !panel.contains(e.target) && !bell.contains(e.target)) {
+            panel.style.display = 'none';
+            notifPanelOpen = false;
+        }
+    });
+
+    function loadNotifications() {
+        fetch('/api/notifications/')
+            .then(r => r.json())
+            .then(data => {
+                updateNotifBadge(data.unread_count);
+                renderNotifications(data.notifications);
+            })
+            .catch(() => {});
+    }
+
+    function updateNotifBadge(count) {
+        const badge = document.getElementById('notifBadge');
+        if (badge) {
+            if (count > 0) {
+                badge.style.display = '';
+                badge.textContent = count > 99 ? '99+' : count;
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+    }
+
+    const NOTIF_ICONS = {
+        'warning': 'exclamation-triangle-fill',
+        'info': 'info-circle-fill',
+        'success': 'check-circle-fill',
+        'system': 'gear-fill',
+        'posture': 'person-arms-up',
+        'connect': 'plug-fill',
+    };
+    const NOTIF_COLORS = {
+        'warning': 'var(--accent-amber)',
+        'info': 'var(--accent-blue)',
+        'success': 'var(--accent-green)',
+        'system': 'var(--accent-purple)',
+        'posture': 'var(--accent-red)',
+        'connect': 'var(--accent-green)',
+    };
+
+    function renderNotifications(notifs) {
+        const list = document.getElementById('notifList');
+        if (!list) return;
+        if (!notifs || notifs.length === 0) {
+            list.innerHTML = '<p style="text-align: center; color: var(--text-muted); font-size: 0.82rem; padding: 1rem;">Bildirim yok</p>';
+            return;
+        }
+        list.innerHTML = notifs.map(n => `
+            <div style="padding: 0.6rem 0.75rem; border-radius: var(--radius-sm); margin-bottom: 4px; cursor: pointer; background: ${n.is_read ? 'transparent' : 'var(--accent-blue-soft)'}; transition: background 150ms;"
+                 onclick="markNotifRead(${n.id}, this)"
+                 onmouseover="this.style.background='var(--bg-card-hover)'" onmouseout="this.style.background='${n.is_read ? 'transparent' : 'var(--accent-blue-soft)'}'">
+                <div style="display: flex; align-items: flex-start; gap: 0.6rem;">
+                    <i class="bi bi-${NOTIF_ICONS[n.type] || 'info-circle-fill'}" style="color: ${NOTIF_COLORS[n.type] || 'var(--accent-blue)'}; font-size: 1rem; margin-top: 2px;"></i>
+                    <div style="flex: 1; min-width: 0;">
+                        <div style="font-size: 0.82rem; font-weight: ${n.is_read ? '400' : '600'}; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${n.title}</div>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px;">${n.message}</div>
+                        <div style="font-size: 0.68rem; color: var(--text-muted); margin-top: 3px;">${n.created_at}${n.room ? ' - ' + n.room : ''}</div>
+                    </div>
+                    ${!n.is_read ? '<span style="width: 8px; height: 8px; border-radius: 50%; background: var(--accent-blue); flex-shrink: 0; margin-top: 6px;"></span>' : ''}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function markNotifRead(id, el) {
+        fetch('/api/notifications/' + id + '/read/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+        }).then(() => {
+            if (el) {
+                el.style.background = 'transparent';
+                const dot = el.querySelector('span[style*="border-radius: 50%"]');
+                if (dot) dot.remove();
+            }
+            loadNotifications();
+        });
+    }
+
+    function markAllNotifRead() {
+        fetch('/api/notifications/read-all/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+        }).then(() => loadNotifications());
+    }
+
+    // Her 15 saniyede bir bildirim sayisini guncelle
+    setInterval(function() {
+        fetch('/api/notifications/')
+            .then(r => r.json())
+            .then(data => updateNotifBadge(data.unread_count))
+            .catch(() => {});
+    }, 15000);
+
+    // Sayfa yuklenince bildirim sayisini al
+    document.addEventListener('DOMContentLoaded', function() {
+        fetch('/api/notifications/')
+            .then(r => r.json())
+            .then(data => updateNotifBadge(data.unread_count))
+            .catch(() => {});
+
+        // Tarayici bildirimi izni iste
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+    });
+
+    function toggleTheme() {
+        const body = document.body;
+        const current = body.getAttribute('data-theme') || 'dark';
+        const next = current === 'dark' ? 'light' : 'dark';
+        body.setAttribute('data-theme', next);
+
+        // Ikon guncelle
+        const icon = document.getElementById('themeIcon');
+        if (icon) {
+            icon.className = 'bi bi-' + (next === 'dark' ? 'moon-stars' : 'sun') + '-fill';
+        }
+
+        // Tercihi kaydet
+        fetch('/accounts/toggle-theme/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({theme: next}),
+        });
+    }
+
+    // Sayfa yuklendiginde ikon guncelle
+    document.addEventListener('DOMContentLoaded', function() {
+        const theme = document.body.getAttribute('data-theme') || 'dark';
+        const icon = document.getElementById('themeIcon');
+        if (icon) {
+            icon.className = 'bi bi-' + (theme === 'dark' ? 'moon-stars' : 'sun') + '-fill';
+        }
+    });
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+
+</html>

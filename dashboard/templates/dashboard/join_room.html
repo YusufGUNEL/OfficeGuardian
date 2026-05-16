@@ -1,0 +1,139 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Calisan Girisi - OfficeGuardian{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="card bg-card mt-4">
+            <div class="card-body text-center py-4" style="border-bottom: 1px solid var(--border-subtle);">
+                <div style="width: 64px; height: 64px; background: linear-gradient(135deg, rgba(96,165,250,0.12) 0%, rgba(52,211,153,0.12) 100%); border: 1px solid rgba(96,165,250,0.15); border-radius: 16px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 1rem;">
+                    <i class="bi bi-person-badge" style="font-size: 1.6rem; color: var(--accent-blue);"></i>
+                </div>
+                <h4 style="font-weight: 700; margin: 0;">Calisan Girisi</h4>
+                {% if success %}
+                <div style="color: var(--accent-green); font-weight: 600; margin-top: 0.5rem; font-size: 0.9rem;">
+                    Bilgiler Onaylandi <i class="bi bi-check-circle-fill"></i>
+                </div>
+                {% else %}
+                <p style="color: var(--text-secondary); margin: 0.4rem 0 0; font-size: 0.85rem;">Odaya katilmak icin bilgilerinizi girin.</p>
+                {% endif %}
+            </div>
+
+            <div class="card-body p-4">
+                {% if error %}
+                <div class="alert alert-danger d-flex align-items-center" role="alert" style="font-size: 0.85rem;">
+                    <i class="bi bi-exclamation-triangle-fill flex-shrink-0 me-2"></i>
+                    <div>{{ error }}</div>
+                </div>
+                {% endif %}
+
+                {% if success %}
+                <!-- Success Screen -->
+                <div class="alert alert-info" style="font-size: 0.85rem;">
+                    <h6 style="color: var(--accent-blue); font-weight: 600;"><i class="bi bi-terminal"></i> Baglanti Yontemi</h6>
+                    <p class="mb-0" style="font-size: 0.82rem;">Guvenlik uyarisi alirsaniz asagidaki komutu kopyalayip terminale yapistirin.</p>
+                </div>
+
+                <div class="mb-4">
+                    <label style="font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em;">Yontem 1: Komutu Kopyala</label>
+                    <div class="input-group mt-1">
+                        <input type="text" class="form-control bg-dark border-secondary font-monospace" style="color: var(--accent-amber); font-size: 0.82rem;"
+                            value="{{ command }}" id="cmdInput" readonly>
+                        <button class="btn btn-outline-warning" type="button" onclick="copyCmd()">
+                            <i class="bi bi-clipboard"></i>
+                        </button>
+                    </div>
+                    <div style="color: var(--text-muted); font-size: 0.78rem; margin-top: 0.4rem;">
+                        Terminal veya CMD'yi acin, komutu yapistirip Enter'a basin.
+                    </div>
+                </div>
+
+                <hr style="border-color: var(--border-subtle); margin: 1.5rem 0;">
+
+                <div class="d-grid gap-2">
+                    <label style="font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em; text-align: center;">Yontem 2: Dosya ile Baglan</label>
+                    <a href="{% url 'dashboard:download_client_script' %}?room={{ room_code }}&user={{ username }}"
+                        class="btn btn-info btn-lg">
+                        <i class="bi bi-file-earmark-zip"></i> Baslaticiyi Indir (ZIP)
+                    </a>
+                    <div class="text-center" style="font-size: 0.75rem; color: var(--text-muted);">
+                        Inen ZIP'i acin, dosyayi masaustune cikarin ve calistirin.
+                    </div>
+                </div>
+
+                <div class="text-center mt-4">
+                    <a href="{% url 'dashboard:join_room' %}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-arrow-counterclockwise"></i> Tekrar Giris Yap
+                    </a>
+                </div>
+
+                <script>
+                    function copyCmd() {
+                        var copyText = document.getElementById("cmdInput");
+                        copyText.select();
+                        copyText.setSelectionRange(0, 99999);
+                        navigator.clipboard.writeText(copyText.value);
+                        alert("Komut kopyalandi! Terminale yapistirebilirsiniz.");
+                    }
+                </script>
+
+                {% else %}
+                <!-- Entry Form -->
+                <form method="post">
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label for="room_code" class="form-label">Oda Kodu</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-dark border-secondary" style="color: var(--text-muted);">
+                                <i class="bi bi-key"></i>
+                            </span>
+                            <input type="text" class="form-control bg-dark text-light border-secondary" id="room_code"
+                                name="room_code" placeholder="Orn: ABC123" value="{{ room_code|default:'' }}" required
+                                maxlength="6" style="text-transform:uppercase">
+                        </div>
+                        <div style="color: var(--text-muted); font-size: 0.78rem; margin-top: 0.3rem;">Yoneticinizden aldiginiz 6 haneli kod.</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="username" class="form-label">Adiniz Soyadiniz</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-dark border-secondary" style="color: var(--text-muted);">
+                                <i class="bi bi-person"></i>
+                            </span>
+                            <input type="text" class="form-control bg-dark text-light border-secondary" id="username"
+                                name="username" placeholder="Orn: Ahmet Yilmaz" value="{{ username|default:'' }}"
+                                required>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="bi bi-check-lg"></i> Giris Yap & Baglan
+                        </button>
+                    </div>
+                </form>
+                {% endif %}
+            </div>
+
+            {% if not success %}
+            <div class="card-body py-3" style="border-top: 1px solid var(--border-subtle);">
+                <div class="d-flex align-items-start gap-2" style="font-size: 0.8rem; color: var(--text-secondary);">
+                    <i class="bi bi-info-circle" style="color: var(--accent-blue); margin-top: 2px;"></i>
+                    <span>
+                        Ad ve oda kodunu girince iki secenek cikacak: <strong style="color: var(--text-primary);">komutu kopyala</strong> veya <strong style="color: var(--text-primary);">dosyayi indir</strong>.
+                    </span>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="text-center mt-3">
+            <a href="{% url 'dashboard:index' %}" style="color: var(--text-muted); text-decoration: none; font-size: 0.85rem;">
+                <i class="bi bi-arrow-left"></i> Ana Sayfaya Don
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

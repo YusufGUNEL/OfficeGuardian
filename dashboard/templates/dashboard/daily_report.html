@@ -1,0 +1,144 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Gunluk Rapor - OfficeGuardian{% endblock %}
+
+{% block content %}
+<h4 class="mb-4"><i class="bi bi-file-earmark-bar-graph"></i> Gunluk Rapor</h4>
+
+<!-- Filtreler -->
+<div class="card bg-card mb-4">
+    <div class="card-body">
+        <form method="get" class="d-flex flex-wrap gap-3 align-items-end">
+            <div>
+                <label class="form-label">Tarih</label>
+                <input type="date" name="date" class="form-control bg-dark text-light border-secondary"
+                    value="{{ report_date|date:'Y-m-d' }}">
+            </div>
+            <div>
+                <label class="form-label">Oda</label>
+                <select name="room" class="form-select bg-dark text-light border-secondary">
+                    <option value="">Tum Odalar</option>
+                    {% for room in rooms %}
+                    <option value="{{ room.code }}" {% if selected_room and selected_room.code == room.code %}selected{% endif %}>
+                        {{ room.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <button type="submit" class="btn btn-info">
+                    <i class="bi bi-funnel"></i> Filtrele
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Ozet Kartlari -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-label">Toplam Calisan</div>
+            <div class="stat-value" style="color: var(--accent-blue);">{{ stats|length }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-label">Ort. Postur Skoru</div>
+            <div class="stat-value"
+                style="color: {% if avg_posture >= 70 %}var(--accent-green){% elif avg_posture >= 40 %}var(--accent-amber){% else %}var(--accent-red){% endif %};">
+                %{{ avg_posture }}
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-label">Ort. Verimlilik</div>
+            <div class="stat-value"
+                style="color: {% if avg_work_ratio >= 70 %}var(--accent-green){% elif avg_work_ratio >= 40 %}var(--accent-amber){% else %}var(--accent-red){% endif %};">
+                %{{ avg_work_ratio }}
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-label">Toplam Calisma</div>
+            <div class="stat-value" style="color: var(--accent-green);">
+                {% widthratio total_work 3600 1 %}s
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Calisan Detay Tablosu -->
+<div class="card bg-card">
+    <div class="card-body">
+        <h5 class="card-title"><i class="bi bi-people"></i> Calisan Performanslari - {{ report_date|date:"d.m.Y" }}</h5>
+        {% if stats %}
+        <div class="table-responsive">
+            <table class="table table-dark table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Calisan</th>
+                        {% if not selected_room %}<th>Oda</th>{% endif %}
+                        <th>Calisma</th>
+                        <th>Mola</th>
+                        <th>Postur Skoru</th>
+                        <th>Verimlilik</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for stat in stats %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>
+                            <a href="{% url 'dashboard:employee_detail' stat.user.username %}"
+                                style="color: var(--accent-blue); text-decoration: none; font-weight: 500;">
+                                {{ stat.user.username }}
+                            </a>
+                        </td>
+                        {% if not selected_room %}
+                        <td style="color: var(--text-secondary);">{{ stat.room.name }}</td>
+                        {% endif %}
+                        <td>
+                            {% with hours=stat.work_seconds|floatformat:0 %}
+                            {{ stat.work_seconds|floatformat:0 }}sn
+                            {% endwith %}
+                        </td>
+                        <td style="color: var(--text-secondary);">{{ stat.break_seconds|floatformat:0 }}sn</td>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="progress" style="height: 6px; width: 60px;">
+                                    <div class="progress-bar {% if stat.posture_score >= 70 %}bg-success{% elif stat.posture_score >= 40 %}bg-warning{% else %}bg-danger{% endif %}"
+                                        style="width: {{ stat.posture_score }}%"></div>
+                                </div>
+                                <span
+                                    style="font-weight: 600; color: {% if stat.posture_score >= 70 %}var(--accent-green){% elif stat.posture_score >= 40 %}var(--accent-amber){% else %}var(--accent-red){% endif %};">
+                                    %{{ stat.posture_score }}
+                                </span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="progress" style="height: 6px; width: 60px;">
+                                    <div class="progress-bar {% if stat.work_ratio >= 70 %}bg-success{% elif stat.work_ratio >= 40 %}bg-warning{% else %}bg-danger{% endif %}"
+                                        style="width: {{ stat.work_ratio }}%"></div>
+                                </div>
+                                <span
+                                    style="font-weight: 600; color: {% if stat.work_ratio >= 70 %}var(--accent-green){% elif stat.work_ratio >= 40 %}var(--accent-amber){% else %}var(--accent-red){% endif %};">
+                                    %{{ stat.work_ratio }}
+                                </span>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p style="color: var(--text-secondary); font-size: 0.85rem;" class="mb-0">Bu tarih icin veri bulunamadi.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

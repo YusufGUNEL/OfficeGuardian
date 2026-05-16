@@ -1,0 +1,122 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Profil - OfficeGuardian{% endblock %}
+
+{% block content %}
+<h4 class="mb-4"><i class="bi bi-person-gear"></i> Profil</h4>
+
+<div class="row g-4">
+    <!-- Profil Bilgileri -->
+    <div class="col-md-6">
+        <div class="card bg-card">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-person"></i> Kisisel Bilgiler</h5>
+
+                <!-- Avatar -->
+                <div class="text-center mb-4">
+                    <div style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, var(--accent-blue-soft), var(--accent-green-soft)); border: 2px solid var(--accent-blue); display: inline-flex; align-items: center; justify-content: center; font-size: 1.8rem; font-weight: 700; color: var(--accent-blue);">
+                        {{ request.user.get_initials }}
+                    </div>
+                    <div style="margin-top: 0.5rem; color: var(--text-secondary); font-size: 0.85rem;">
+                        @{{ request.user.username }}
+                        <span class="badge bg-accent ms-1">{{ request.user.get_role_display }}</span>
+                    </div>
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="update_profile">
+                    <div class="mb-3">
+                        <label class="form-label">Ad</label>
+                        {{ form.first_name }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Soyad</label>
+                        {{ form.last_name }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">E-posta</label>
+                        {{ form.email }}
+                    </div>
+                    {% if form.errors %}
+                    <div class="alert alert-danger" style="font-size: 0.82rem;">
+                        {% for field, errors in form.errors.items %}
+                            {% for error in errors %}
+                            <div>{{ error }}</div>
+                            {% endfor %}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="bi bi-check-lg"></i> Kaydet
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sifre Degistir -->
+    <div class="col-md-6">
+        <div class="card bg-card">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-lock"></i> Sifre Degistir</h5>
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="change_password">
+                    <div class="mb-3">
+                        <label class="form-label">Mevcut Sifre</label>
+                        {{ password_form.old_password }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Yeni Sifre</label>
+                        {{ password_form.new_password1 }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Yeni Sifre (Tekrar)</label>
+                        {{ password_form.new_password2 }}
+                    </div>
+                    {% if password_form.errors %}
+                    <div class="alert alert-danger" style="font-size: 0.82rem;">
+                        {% for field, errors in password_form.errors.items %}
+                            {% for error in errors %}
+                            <div>{{ error }}</div>
+                            {% endfor %}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    <button type="submit" class="btn btn-info w-100">
+                        <i class="bi bi-key"></i> Sifreyi Degistir
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Hesap Bilgileri -->
+        <div class="card bg-card mt-4">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-info-circle"></i> Hesap Bilgileri</h5>
+                <div class="stat-row">
+                    <span>Kullanici Adi</span>
+                    <span style="font-weight: 600;">{{ request.user.username }}</span>
+                </div>
+                <div class="stat-row">
+                    <span>Rol</span>
+                    <span class="badge bg-info">{{ request.user.get_role_display }}</span>
+                </div>
+                <div class="stat-row">
+                    <span>Kayit Tarihi</span>
+                    <span>{{ request.user.date_joined|date:"d.m.Y H:i" }}</span>
+                </div>
+                <div class="stat-row">
+                    <span>Son Giris</span>
+                    <span>{{ request.user.last_login|date:"d.m.Y H:i" }}</span>
+                </div>
+                <div class="stat-row">
+                    <span>Tema</span>
+                    <span>{{ request.user.get_theme_display }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
