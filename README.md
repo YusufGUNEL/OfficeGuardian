@@ -70,6 +70,8 @@ Ana bağımlılıklar (`requirements.txt`):
 - Pillow >= 10.0.0
 - python-docx >= 1.0.0
 - openpyxl >= 3.1.0
+- customtkinter >= 5.2.0 (GUI istemcisi)
+- requests >= 2.31.0 (istemci)
 
 ## Kurulum
 
